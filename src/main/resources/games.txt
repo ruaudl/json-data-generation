@@ -1,15 +1,15 @@
-Dudo
-Perudo
-Yathzee
-421
-Craps
-10000
-Killer
-Poker menteur
-As
-Bateau
-Suites
-Zanzibar
-Sept
-Black Jack
-Marathon
+Dudo|2||
+Perudo|2||
+Yathzee|1||
+421|2||
+Craps|||
+10000|2||Le premier joueur lance les dés et son pointage est additionné au fur et à mesure. Un joueur peut arrêter à tout moment, excepté après un brelan, et enregister son total ou continuer à jouer tant qu’il réussit une combinaison. Si sur un lancer il n’y a pas de combinaison gagnante, il perd tous les points accumulés pendant ce tour. Un joueur doit accumuler un total exact de 10 000 points pour gagner.
+Killer|||
+Poker menteur|||
+As|||
+Bateau|||
+Suites|||
+Zanzibar|||
+Sept|||
+Black Jack|||
+Marathon|||
