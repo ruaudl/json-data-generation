@@ -3,16 +3,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.google.common.math.IntMath;
 import com.google.common.primitives.Ints;
 
 public class DataGeneration {
@@ -24,45 +31,70 @@ public class DataGeneration {
 		List<Game> games = readGamesIn("games");
 		List<Account> accounts = readAccountsIn("names", "domains", "locations");
 
-		LocalDate from = new LocalDate(2014, 1, 1);
-		LocalDate to = new LocalDate(2014, 12, 1);
-
 		int id = 1;
 		Random random = new Random();
 		List<String> plays = new ArrayList<String>();
 
 		for (int i = 0; i < LINES_NUMBER; i++) {
-			LocalDate currentDate = getDate(from, random);
+			final Game game = pickIn(games);
 
-			Game game = getRandom(random, games);
+			int minPlayers = game.minPlayers != null ? game.minPlayers : 1;
+			int maxPlayers = game.maxPlayers != null ? game.maxPlayers
+					: accounts.size();
+			int playersCount = Math.min(
+					random.nextInt(maxPlayers) + minPlayers, accounts.size());
 
-			Account firstPlayer = pickIn(accounts);
-			Account secondPlayer = firstPlayer;
-			while (secondPlayer == firstPlayer) {
-				secondPlayer = pickIn(accounts);
+			Set<Account> players = new HashSet<Account>();
+
+			while (players.size() < playersCount) {
+				players.add(pickIn(accounts));
 			}
 
-			int firstPlayerScore = random.nextInt(MAX_SCORE);
-			int secondPlayerScore = random.nextInt(MAX_SCORE);
+			String playersJson = Joiner.on(", ").join(
+					Collections2.transform(players,
+							new Function<Account, String>() {
+								public String apply(Account account) {
+									return String
+											.format("{ \"name\" : \"%s\", \"account\" : %s }",
+													formatName(account, game),
+													account);
+								}
+							}));
 
-			String players = String
-					.format("{ \"name\" : \"%s\", \"account\" : %s }, { \"name\" : \"%s\", \"account\" : %s }",
-							formatName(firstPlayer, game), firstPlayer,
-							formatName(secondPlayer, game), secondPlayer);
+			Map<Integer, Account> scores = new HashMap<Integer, Account>();
+			for (Account account : players) {
+				scores.put(random.nextInt(MAX_SCORE), account);
+			}
 
-			String scores = String
-					.format("{ \"name\" : \"%s\", \"score\" : %d }, { \"name\" : \"%s\", \"score\" : %d }",
-							formatName(firstPlayer, game), firstPlayerScore,
-							formatName(secondPlayer, game), secondPlayerScore);
+			String scoresJson = Joiner
+					.on(", ")
+					.join(Collections2.transform(
+							scores.entrySet(),
+							new Function<Map.Entry<Integer, Account>, String>() {
+								public String apply(
+										Map.Entry<Integer, Account> entry) {
+									return String
+											.format("{ \"name\" : \"%s\", \"score\" : %d }",
+													formatName(
+															entry.getValue(),
+															game), entry
+															.getKey());
+								}
+							}));
 
-			String winner = firstPlayerScore > secondPlayerScore ? formatName(
-					firstPlayer, game)
-					: firstPlayerScore < secondPlayerScore ? formatName(
-							secondPlayer, game) : "draw";
+			String winner = "";
+			// firstPlayerScore > secondPlayerScore ? formatName(
+			// firstPlayer, game)
+			// : firstPlayerScore < secondPlayerScore ? formatName(
+			// secondPlayer, game) : "draw";
+
+			LocalDateTime startTime = pickDateTime();
+			LocalDateTime endTime = pickDateTime(startTime, 6);
 
 			String json = String
-					.format("{ \"id\" : \"%d\", \"game\" : %s, \"date\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
-							id, game, currentDate, players, scores, winner);
+					.format("{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
+							id, game, startTime, endTime, playersJson,
+							scoresJson, winner);
 			plays.add(json);
 
 			id++;
@@ -73,15 +105,6 @@ public class DataGeneration {
 		}
 		dumpIn("data.json", plays);
 		plays.clear();
-	}
-
-	private static <T> T getRandom(Random random, Collection<T> list) {
-		int index = random.nextInt(list.size());
-		return Lists.newArrayList(list).get(index);
-	}
-
-	private static LocalDate getDate(LocalDate from, Random random) {
-		return from.plusDays(random.nextInt(330));
 	}
 
 	private static String formatName(Account account, Game game) {
@@ -121,6 +144,7 @@ public class DataGeneration {
 		for (String line : gameLines) {
 			List<String> strings = Lists.newArrayList(Splitter.on('|').split(
 					line));
+
 			Game game = new Game(strings.get(0), Ints.tryParse(strings.get(1)),
 					Ints.tryParse(strings.get(2)), strings.get(3));
 			games.add(game);
@@ -147,6 +171,15 @@ public class DataGeneration {
 
 	private static <T> T pickIn(List<T> objects) {
 		return objects.get(new Random().nextInt(objects.size()));
+	}
+
+	private static LocalDateTime pickDateTime() {
+		return pickDateTime(new LocalDateTime(2014, 1, 1, 0, 0), 330 * 24 * 60);
+	}
+
+	private static LocalDateTime pickDateTime(LocalDateTime from,
+			int minutesRange) {
+		return from.plusMinutes(new Random().nextInt(minutesRange));
 	}
 
 	public static class Account {
