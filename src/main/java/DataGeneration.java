@@ -19,15 +19,15 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-import com.google.common.math.IntMath;
 import com.google.common.primitives.Ints;
 
 public class DataGeneration {
 
 	private static final int MAX_SCORE = 100;
 	private static final int LINES_NUMBER = 10000;
-	private static final String INDEX = "moteurjeu";
+	private static final String INDEX = "engine";
 	private static final String TYPE = "match";
+
 	public static void main(String[] args) throws IOException {
 		List<Game> games = readGamesIn("games");
 		List<Account> accounts = readAccountsIn("names", "domains", "locations");
@@ -35,6 +35,10 @@ public class DataGeneration {
 		int id = 1;
 		Random random = new Random();
 		List<String> plays = new ArrayList<String>();
+
+		String targetJson = String.format(
+				"{ \"index\" : { \"_index\" : \"%s\", \"_type\" : \"%s\" } }",
+				INDEX, TYPE);
 
 		for (int i = 0; i < LINES_NUMBER; i++) {
 			final Game game = pickIn(games);
@@ -93,9 +97,10 @@ public class DataGeneration {
 			LocalDateTime endTime = pickDateTime(startTime, 6);
 
 			String json = String
-					.format("{ \"index\" : { \"_index\" : \"%s\", \"_type\" : \"%s\" } }\n{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
-							INDEX, TYPE, id, game, startTime, endTime, playersJson,
-							scoresJson, winner);
+					.format("%s\n{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
+							targetJson, id, game, startTime, endTime,
+							playersJson, scoresJson, winner);
+
 			plays.add(json);
 
 			id++;
