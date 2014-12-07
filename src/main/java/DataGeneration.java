@@ -26,7 +26,8 @@ public class DataGeneration {
 
 	private static final int MAX_SCORE = 100;
 	private static final int LINES_NUMBER = 10000;
-
+	private static final String INDEX = "moteurjeu";
+	private static final String TYPE = "match";
 	public static void main(String[] args) throws IOException {
 		List<Game> games = readGamesIn("games");
 		List<Account> accounts = readAccountsIn("names", "domains", "locations");
@@ -92,8 +93,8 @@ public class DataGeneration {
 			LocalDateTime endTime = pickDateTime(startTime, 6);
 
 			String json = String
-					.format("{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
-							id, game, startTime, endTime, playersJson,
+					.format("{ \"index\" : { \"_index\" : \"%s\", \"_type\" : \"%s\" } }\n{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
+							INDEX, TYPE, id, game, startTime, endTime, playersJson,
 							scoresJson, winner);
 			plays.add(json);
 
