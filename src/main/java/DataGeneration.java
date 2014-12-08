@@ -24,6 +24,7 @@ import com.google.common.primitives.Ints;
 public class DataGeneration {
 
 	private static final int MAX_SCORE = 100;
+	private static final int FILES_NUMBER = 20;
 	private static final int LINES_NUMBER = 10000;
 	private static final String INDEX = "engine";
 	private static final String TYPE = "match";
@@ -34,83 +35,83 @@ public class DataGeneration {
 
 		int id = 1;
 		Random random = new Random();
-		List<String> plays = new ArrayList<String>();
 
 		String targetJson = String.format(
 				"{ \"index\" : { \"_index\" : \"%s\", \"_type\" : \"%s\" } }",
 				INDEX, TYPE);
 
-		for (int i = 0; i < LINES_NUMBER; i++) {
-			final Game game = pickIn(games);
+		for (int j = 0; j < FILES_NUMBER; j++) {
+			for (int i = 0; i < LINES_NUMBER; i++) {
+				final Game game = pickIn(games);
 
-			int minPlayers = game.minPlayers != null ? game.minPlayers : 1;
-			int maxPlayers = game.maxPlayers != null ? game.maxPlayers
-					: accounts.size();
-			int playersCount = Math.min(
-					random.nextInt(maxPlayers) + minPlayers, accounts.size());
+				int minPlayers = game.minPlayers != null ? game.minPlayers : 1;
+				int maxPlayers = game.maxPlayers != null ? game.maxPlayers
+						: accounts.size();
+				int playersCount = Math.min(random.nextInt(maxPlayers)
+						+ minPlayers, accounts.size());
 
-			Set<Account> players = new HashSet<Account>();
+				Set<Account> players = new HashSet<Account>();
 
-			while (players.size() < playersCount) {
-				players.add(pickIn(accounts));
-			}
+				while (players.size() < playersCount) {
+					players.add(pickIn(accounts));
+				}
 
-			String playersJson = Joiner.on(", ").join(
-					Collections2.transform(players,
-							new Function<Account, String>() {
-								public String apply(Account account) {
-									return String
-											.format("{ \"name\" : \"%s\", \"account\" : %s }",
-													formatName(account, game),
-													account);
-								}
-							}));
+				String playersJson = Joiner.on(", ").join(
+						Collections2.transform(players,
+								new Function<Account, String>() {
+									public String apply(Account account) {
+										return String
+												.format("{ \"name\" : \"%s\", \"account\" : %s }",
+														formatName(account,
+																game), account);
+									}
+								}));
 
-			Map<Integer, Account> scores = new HashMap<Integer, Account>();
-			for (Account account : players) {
-				scores.put(random.nextInt(MAX_SCORE), account);
-			}
+				Map<Integer, Account> scores = new HashMap<Integer, Account>();
+				Integer bestScore = -1;
+				for (Account account : players) {
+					int score = random.nextInt(MAX_SCORE);
+					scores.put(score, account);
+					if (score > bestScore) {
+						bestScore = score;
+					}
+				}
 
-			String scoresJson = Joiner
-					.on(", ")
-					.join(Collections2.transform(
-							scores.entrySet(),
-							new Function<Map.Entry<Integer, Account>, String>() {
-								public String apply(
-										Map.Entry<Integer, Account> entry) {
-									return String
-											.format("{ \"name\" : \"%s\", \"score\" : %d }",
-													formatName(
-															entry.getValue(),
-															game), entry
-															.getKey());
-								}
-							}));
+				String scoresJson = Joiner
+						.on(", ")
+						.join(Collections2.transform(
+								scores.entrySet(),
+								new Function<Map.Entry<Integer, Account>, String>() {
+									public String apply(
+											Map.Entry<Integer, Account> entry) {
+										return String
+												.format("{ \"name\" : \"%s\", \"score\" : %d }",
+														formatName(entry
+																.getValue(),
+																game), entry
+																.getKey());
+									}
+								}));
 
-			String winner = "";
-			// firstPlayerScore > secondPlayerScore ? formatName(
-			// firstPlayer, game)
-			// : firstPlayerScore < secondPlayerScore ? formatName(
-			// secondPlayer, game) : "draw";
+				String winner = formatName(scores.get(bestScore), game);
 
-			LocalDateTime startTime = pickDateTime();
-			LocalDateTime endTime = pickDateTime(startTime, 6);
+				LocalDateTime startTime = pickDateTime();
+				LocalDateTime endTime = pickDateTime(startTime, 6);
 
-			String json = String
-					.format("%s\n{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
-							targetJson, id, game, startTime, endTime,
-							playersJson, scoresJson, winner);
+				String json = String
+						.format("%s\n{ \"id\" : \"%d\", \"game\" : %s, \"startTime\" : \"%s\", \"endTime\" : \"%s\", \"players\" : [ %s ], \"scores\" : [ %s ], \"winner\" : \"%s\" }",
+								targetJson, id, game, startTime, endTime,
+								playersJson, scoresJson, winner);
 
-			plays.add(json);
+				appendIn(String.format("data-%03d.json", j), json);
 
-			id++;
-			System.out.print(".");
-			if (id % 1000 == 0) {
-				System.out.println();
+				id++;
+				System.out.print(".");
+				if (id % 1000 == 0) {
+					System.out.println();
+				}
 			}
 		}
-		dumpIn("data.json", plays);
-		plays.clear();
 	}
 
 	private static String formatName(Account account, Game game) {
@@ -134,6 +135,13 @@ public class DataGeneration {
 			Files.append(object, file, Charsets.UTF_8);
 			Files.append("\n", file, Charsets.UTF_8);
 		}
+	}
+
+	private static void appendIn(String fileName, String object)
+			throws IOException {
+		File file = new File(fileName);
+		Files.append(object, file, Charsets.UTF_8);
+		Files.append("\n", file, Charsets.UTF_8);
 	}
 
 	private static List<String> readIn(String name) throws IOException {
